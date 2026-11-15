@@ -1,1 +1,93 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>কমিউনিটি - সোশ্যাল</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">🌐 সোশ্যাল</div>
+  <div class="nav-links">
+    <a href="index.html">হোম</a>
+    <a href="community.html" class="active">কমিউনিটি</a>
+    <a href="chat.html">চ্যাট</a>
+    <a href="profile.html">প্রোফাইল</a>
+    <button id="logout-btn" class="logout-btn">লগআউট</button>
+  </div>
+</nav>
 
+<main class="container">
+  <div class="create-group">
+    <h2>কমিউনিটি গ্রুপ</h2>
+    <input type="text" id="group-name" placeholder="গ্রুপের নাম">
+    <textarea id="group-desc" placeholder="গ্রুপের বর্ণনা"></textarea>
+    <button id="create-group-btn" class="btn-primary">গ্রুপ তৈরি করুন</button>
+  </div>
+  <div id="group-list" class="group-list"></div>
+</main>
+
+<script type="module">
+import { db } from './js/firebase-config.js';
+import { onUserChange, logout } from './js/auth.js';
+import {
+  collection, addDoc, serverTimestamp, onSnapshot, query, orderBy,
+  doc, updateDoc, arrayUnion, arrayRemove
+} from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+let currentUser = null;
+
+onUserChange(u => {
+  if (!u) { window.location.href = 'login.html'; return; }
+  currentUser = u;
+  const q = query(collection(db, "groups"), orderBy("createdAt", "desc"));
+  onSnapshot(q, snap => {
+    render(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  });
+});
+
+function render(groups) {
+  const list = document.getElementById('group-list');
+  list.innerHTML = '';
+  if (!groups.length) { list.innerHTML = '<p class="empty">কোনো গ্রুপ নেই। প্রথমটি তৈরি করুন!</p>'; return; }
+  groups.forEach(g => {
+    const joined = (g.members || []).includes(currentUser.uid);
+    const div = document.createElement('div');
+    div.className = 'group-card';
+    div.innerHTML = `
+      <h3>${esc(g.name)}</h3>
+      <p>${esc(g.description || '')}</p>
+      <div class="group-meta">
+        <span>👥 ${(g.members || []).length} সদস্য</span>
+        <button class="${joined ? 'btn-secondary' : 'btn-primary'}">
+          ${joined ? 'ত্যাগ করুন' : 'যোগ দিন'}
+        </button>
+      </div>`;
+    div.querySelector('button').onclick = () => {
+      const r = doc(db, "groups", g.id);
+      updateDoc(r, { members: joined ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+    };
+    list.appendChild(div);
+  });
+}
+
+document.getElementById('create-group-btn').onclick = async () => {
+  const name = document.getElementById('group-name').value.trim();
+  const description = document.getElementById('group-desc').value.trim();
+  if (!name) return alert('নাম দিন');
+  await addDoc(collection(db, "groups"), {
+    name, description, createdBy: currentUser.uid,
+    createdAt: serverTimestamp(), members: [currentUser.uid]
+  });
+  document.getElementById('group-name').value = '';
+  document.getElementById('group-desc').value = '';
+};
+
+document.getElementById('logout-btn').onclick = async () => {
+  await logout(); window.location.href = 'login.html';
+};
+
+function esc(t){const d=document.createElement('div');d.textContent=t||'';return d.innerHTML;}
+</script>
+</body>
+</html>
