@@ -1,1 +1,85 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>লগইন - সোশ্যাল</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-body">
+<div class="login-container">
+  <h1>🌐 সোশ্যাল</h1>
+  <p class="subtitle">আপনার সোশ্যাল নেটওয়ার্ক</p>
 
+  <div class="tabs">
+    <button class="tab active" data-tab="login">লগইন</button>
+    <button class="tab" data-tab="register">রেজিস্ট্রেশন</button>
+  </div>
+
+  <form id="login-form" class="auth-form">
+    <input type="email" id="login-email" placeholder="ইমেইল" required>
+    <input type="password" id="login-password" placeholder="পাসওয়ার্ড" required>
+    <button type="submit" class="btn-primary">লগইন করুন</button>
+  </form>
+
+  <form id="register-form" class="auth-form hidden">
+    <input type="text" id="reg-name" placeholder="আপনার নাম" required>
+    <input type="email" id="reg-email" placeholder="ইমেইল" required>
+    <input type="password" id="reg-password" placeholder="পাসওয়ার্ড (৬+ অক্ষর)" required minlength="6">
+    <button type="submit" class="btn-primary">রেজিস্ট্রেশন করুন</button>
+  </form>
+
+  <div class="divider"><span>অথবা</span></div>
+
+  <form id="guest-form" class="auth-form">
+    <input type="text" id="guest-name" placeholder="নাম (গেস্ট)" required>
+    <button type="submit" class="btn-secondary">গেস্ট হিসেবে ঢুকুন</button>
+  </form>
+
+  <p id="auth-error" class="error-msg"></p>
+</div>
+
+<script type="module">
+import { loginUser, registerUser, loginAsGuest, onUserChange } from './js/auth.js';
+
+onUserChange(u => { if (u) window.location.href = 'index.html'; });
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  const tab = t.dataset.tab;
+  document.getElementById('login-form').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('register-form').classList.toggle('hidden', tab !== 'register');
+}));
+
+const err = document.getElementById('auth-error');
+
+document.getElementById('login-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  try {
+    await loginUser(document.getElementById('login-email').value, document.getElementById('login-password').value);
+    window.location.href = 'index.html';
+  } catch (x) { err.textContent = x.message; }
+});
+
+document.getElementById('register-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  try {
+    await registerUser(
+      document.getElementById('reg-email').value,
+      document.getElementById('reg-password').value,
+      document.getElementById('reg-name').value
+    );
+    window.location.href = 'index.html';
+  } catch (x) { err.textContent = x.message; }
+});
+
+document.getElementById('guest-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  try {
+    await loginAsGuest(document.getElementById('guest-name').value);
+    window.location.href = 'index.html';
+  } catch (x) { err.textContent = x.message; }
+});
+</script>
+</body>
+</html>
