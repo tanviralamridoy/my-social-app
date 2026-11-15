@@ -1,1 +1,92 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>চ্যাট - সোশ্যাল</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">🌐 সোশ্যাল</div>
+  <div class="nav-links">
+    <a href="index.html">হোম</a>
+    <a href="community.html">কমিউনিটি</a>
+    <a href="chat.html" class="active">চ্যাট</a>
+    <a href="profile.html">প্রোফাইল</a>
+    <button id="logout-btn" class="logout-btn">লগআউট</button>
+  </div>
+</nav>
 
+<main class="chat-container">
+  <div class="chat-sidebar">
+    <h3>চ্যাট রুম</h3>
+    <div class="chat-room-list">
+      <button class="chat-room active" data-room="global">🌍 গ্লোবাল</button>
+      <button class="chat-room" data-room="general">💬 সাধারণ</button>
+      <button class="chat-room" data-room="help">❓ সাহায্য</button>
+    </div>
+  </div>
+  <div class="chat-main">
+    <div class="chat-header" id="chat-header">🌍 গ্লোবাল চ্যাট</div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <form class="chat-input-form" id="chat-form">
+      <input type="text" id="chat-input" placeholder="মেসেজ লিখুন..." required>
+      <button type="submit" class="btn-primary">পাঠান</button>
+    </form>
+  </div>
+</main>
+
+<script type="module">
+import { onUserChange, logout } from './js/auth.js';
+import { sendMessage, listenToMessages } from './js/chat.js';
+
+let currentUser = null, currentRoom = 'global', unsub = null;
+
+onUserChange(u => {
+  if (!u) { window.location.href = 'login.html'; return; }
+  currentUser = u;
+  switchRoom('global', '🌍 গ্লোবাল চ্যাট');
+});
+
+document.querySelectorAll('.chat-room').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.chat-room').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    switchRoom(btn.dataset.room, btn.textContent.trim());
+  };
+});
+
+function switchRoom(room, label) {
+  currentRoom = room;
+  document.getElementById('chat-header').textContent = label;
+  if (unsub) unsub();
+  unsub = listenToMessages(room, msgs => {
+    const box = document.getElementById('chat-messages');
+    box.innerHTML = '';
+    msgs.forEach(m => {
+      const own = m.senderId === currentUser.uid;
+      const div = document.createElement('div');
+      div.className = `message ${own ? 'own' : ''}`;
+      div.innerHTML = `<div class="msg-author">${esc(m.senderName)}</div><div class="msg-text">${esc(m.text)}</div>`;
+      box.appendChild(div);
+    });
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
+document.getElementById('chat-form').onsubmit = e => {
+  e.preventDefault();
+  const inp = document.getElementById('chat-input');
+  if (!inp.value.trim()) return;
+  sendMessage(currentRoom, inp.value.trim());
+  inp.value = '';
+};
+
+document.getElementById('logout-btn').onclick = async () => {
+  await logout(); window.location.href = 'login.html';
+};
+
+function esc(t){const d=document.createElement('div');d.textContent=t||'';return d.innerHTML;}
+</script>
+</body>
+</html>
