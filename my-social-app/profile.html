@@ -1,1 +1,88 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>প্রোফাইল - সোশ্যাল</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">🌐 সোশ্যাল</div>
+  <div class="nav-links">
+    <a href="index.html">হোম</a>
+    <a href="community.html">কমিউনিটি</a>
+    <a href="chat.html">চ্যাট</a>
+    <a href="profile.html" class="active">প্রোফাইল</a>
+    <button id="logout-btn" class="logout-btn">লগআউট</button>
+  </div>
+</nav>
 
+<main class="container">
+  <div class="profile-card">
+    <div class="profile-avatar" id="profile-avatar">U</div>
+    <h2 id="profile-name">লোড হচ্ছে...</h2>
+    <p id="profile-email" class="profile-email"></p>
+    <p id="profile-bio" class="profile-bio"></p>
+    <div class="profile-stats">
+      <div><strong id="stat-type">Guest</strong> অ্যাকাউন্ট</div>
+    </div>
+    <button id="edit-btn" class="btn-primary">প্রোফাইল সম্পাদনা</button>
+  </div>
+
+  <div id="edit-panel" class="edit-panel hidden">
+    <h3>প্রোফাইল সম্পাদনা</h3>
+    <input type="text" id="edit-name" placeholder="নাম">
+    <textarea id="edit-bio" placeholder="আপনার সম্পর্কে..."></textarea>
+    <button id="save-btn" class="btn-primary">সেভ করুন</button>
+    <button id="cancel-btn" class="btn-secondary">বাতিল</button>
+  </div>
+</main>
+
+<script type="module">
+import { auth } from './js/firebase-config.js';
+import { onUserChange, logout, getUserProfile, updateUserProfile } from './js/auth.js';
+
+let profile = null;
+
+onUserChange(async u => {
+  if (!u) { window.location.href = 'login.html'; return; }
+  profile = (await getUserProfile(u.uid)) || { displayName: u.displayName || 'Guest' };
+  render(u);
+});
+
+function render(user) {
+  const name = profile.displayName || 'Guest';
+  document.getElementById('profile-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('profile-name').textContent = name;
+  document.getElementById('profile-email').textContent = profile.email || (user.isAnonymous ? 'গেস্ট অ্যাকাউন্ট' : user.email);
+  document.getElementById('profile-bio').textContent = profile.bio || 'কোনো বায়ো নেই';
+  document.getElementById('stat-type').textContent = user.isAnonymous ? 'Guest' : 'Regular';
+}
+
+document.getElementById('edit-btn').onclick = () => {
+  document.getElementById('edit-panel').classList.remove('hidden');
+  document.getElementById('edit-name').value = profile.displayName || '';
+  document.getElementById('edit-bio').value = profile.bio || '';
+};
+
+document.getElementById('cancel-btn').onclick = () => {
+  document.getElementById('edit-panel').classList.add('hidden');
+};
+
+document.getElementById('save-btn').onclick = async () => {
+  const name = document.getElementById('edit-name').value.trim();
+  const bio = document.getElementById('edit-bio').value.trim();
+  if (!name) return alert('নাম দিন');
+  await updateUserProfile(auth.currentUser.uid, { displayName: name, bio });
+  profile.displayName = name; profile.bio = bio;
+  render(auth.currentUser);
+  document.getElementById('edit-panel').classList.add('hidden');
+};
+
+document.getElementById('logout-btn').onclick = async () => {
+  await logout();
+  window.location.href = 'login.html';
+};
+</script>
+</body>
+</html>
