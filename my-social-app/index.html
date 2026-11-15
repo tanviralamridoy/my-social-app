@@ -1,1 +1,82 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>হোম - সোশ্যাল</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<nav class="navbar">
+  <div class="nav-brand">🌐 সোশ্যাল</div>
+  <div class="nav-links">
+    <a href="index.html" class="active">হোম</a>
+    <a href="community.html">কমিউনিটি</a>
+    <a href="chat.html">চ্যাট</a>
+    <a href="profile.html">প্রোফাইল</a>
+    <button id="logout-btn" class="logout-btn">লগআউট</button>
+  </div>
+</nav>
 
+<main class="container">
+  <div class="create-post">
+    <textarea id="post-content" placeholder="আপনার মনে কী চলছে?"></textarea>
+    <button id="post-btn" class="btn-primary">পোস্ট করুন</button>
+  </div>
+  <div id="feed-list" class="feed-list"></div>
+</main>
+
+<script type="module">
+import { onUserChange, logout } from './js/auth.js';
+import { listenToFeed, createPost, toggleLike } from './js/posts.js';
+
+let currentUser = null;
+
+onUserChange(u => {
+  if (!u) { window.location.href = 'login.html'; return; }
+  currentUser = u;
+  listenToFeed(posts => renderFeed(posts));
+});
+
+function renderFeed(posts) {
+  const list = document.getElementById('feed-list');
+  list.innerHTML = '';
+  if (!posts.length) { list.innerHTML = '<p class="empty">এখনো কোনো পোস্ট নেই। প্রথম পোস্ট করুন!</p>'; return; }
+  posts.forEach(p => list.appendChild(renderPost(p)));
+}
+
+function renderPost(post) {
+  const div = document.createElement('div');
+  div.className = 'post-card';
+  const liked = post.likes?.includes(currentUser.uid);
+  const time = post.createdAt ? ago(post.createdAt.toMillis()) : 'এখন';
+  div.innerHTML = `
+    <div class="post-header">
+      <div class="avatar">${esc((post.authorName||'G')[0]).toUpperCase()}</div>
+      <div><div class="post-author">${esc(post.authorName)}</div>
+      <div class="post-time">${time}</div></div>
+    </div>
+    <div class="post-content">${esc(post.content)}</div>
+    <div class="post-actions">
+      <button class="like-btn ${liked?'liked':''}">${liked?'❤️':'🤍'} ${post.likes?.length||0}</button>
+    </div>`;
+  div.querySelector('.like-btn').onclick = () => toggleLike(post.id, currentUser.uid);
+  return div;
+}
+
+document.getElementById('post-btn').onclick = async () => {
+  const c = document.getElementById('post-content').value.trim();
+  if (!c) return;
+  await createPost(c);
+  document.getElementById('post-content').value = '';
+};
+
+document.getElementById('logout-btn').onclick = async () => {
+  await logout();
+  window.location.href = 'login.html';
+};
+
+function esc(t){const d=document.createElement('div');d.textContent=t||'';return d.innerHTML;}
+function ago(ms){const d=(Date.now()-ms)/1000;if(d<60)return'এইমাত্র';if(d<3600)return`${Math.floor(d/60)} মিনিট আগে`;if(d<86400)return`${Math.floor(d/3600)} ঘণ্টা আগে`;return`${Math.floor(d/86400)} দিন আগে`;}
+</script>
+</body>
+</html>
